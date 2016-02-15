@@ -11,6 +11,15 @@
   [credentials user-id]
   (str "https://" (:bucket credentials) ".s3.amazonaws.com/" (build-avatar-key user-id)))
 
+(defn get-user-avatar
+  "get user avatar url or default avatar"
+  [credentials user-id]
+  (try
+    (s3/get-object credentials (:bucket credentials) (build-avatar-key user-id))
+    (get-avatar-url credentials user-id)
+    (catch Exception e
+      "http://www.gravatar.com/avatar/6f31ab5c7d742a1409cc28c0bfd23184?d=mm&s=80")))
+
 (defn get-img-stream
   [src]
   (let [src-parsed (clojure.string/replace src #"^data:image/png;base64," "")
