@@ -26,6 +26,9 @@
         data (Base64/decodeBase64 src-parsed)]
     (input-stream data)))
 
+(defn delete-user-avatar
+  [credentials user-id]
+  (s3/delete-object credentials (:bucket credentials) (build-avatar-key user-id)))
 
 (defn put-user-avatar
   [credentials user-id avatar-value]
