@@ -11,6 +11,10 @@
   [credentials user-id]
   (str "https://" (:bucket credentials) ".s3.amazonaws.com/" (build-avatar-key user-id)))
 
+(defn get-default-avatar-url
+  [credentials]
+  (get-avatar-url credentials "default"))
+
 (defn get-user-avatar
   "get user avatar url or default avatar"
   [credentials user-id]
@@ -18,7 +22,7 @@
     (s3/get-object credentials (:bucket credentials) (build-avatar-key user-id))
     (get-avatar-url credentials user-id)
     (catch Exception e
-      "http://www.gravatar.com/avatar/6f31ab5c7d742a1409cc28c0bfd23184?d=mm&s=80")))
+      (get-default-avatar-url credentials))))
 
 (defn get-img-stream
   [src]
