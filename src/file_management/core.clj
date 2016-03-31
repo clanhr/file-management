@@ -62,7 +62,9 @@
   (str file-key "_" (java.util.UUID/randomUUID)))
 
 (defn put-file
-  [credentials file-key file]
+  ([credentials file]
+    (put-file credentials nil file))
+  ([credentials file-key file]
   "Inputs: - credentials {:bucket
                           :access-key
                           :secret}
@@ -78,4 +80,4 @@
                    (:value file)
                    {:content-type (:content-type file)}
                    (s3/grant :all-users :read))
-    (get-file-url credentials file-key)))
+    (get-file-url credentials file-key))))
