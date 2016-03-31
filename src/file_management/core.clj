@@ -7,13 +7,21 @@
   [user-id]
   (str user-id "-avatar"))
 
+(defn get-url
+  [credentials file-key]
+  (str "https://" (:bucket credentials) ".s3.amazonaws.com/" file-key))
+
 (defn get-avatar-url
   [credentials user-id]
-  (str "https://" (:bucket credentials) ".s3.amazonaws.com/" (build-avatar-key user-id)))
+  (get-url credentials (build-avatar-key user-id)))
 
 (defn get-default-avatar-url
   [credentials]
   (get-avatar-url credentials "default"))
+
+(defn get-file-url
+  [credentials file-key]
+  (get-url credentials file-key))
 
 (defn get-user-avatar
   "get user avatar url or default avatar"
@@ -48,3 +56,26 @@
                    {:content-type "image/png"}
                    (s3/grant :all-users :read))
     (get-avatar-url credentials user-id))
+
+(defn gets-file-key
+  [file-key]
+  (str file-key "_" (java.util.UUID/randomUUID)))
+
+(defn put-file
+  [credentials file-key file]
+  "Inputs: - credentials {:bucket
+                          :access-key
+                          :secret}
+           - file-key We ensure an unique file key by concating an uuid,
+           if nil we generate an unique file-key
+           - file-value {:value ;file content
+                         :content-type }
+   Returns: file url to s3"
+  (let [file-key (gets-file-key file-key)]
+    (s3/put-object credentials
+                   (:bucket credentials)
+                   file-key
+                   (:value file)
+                   {:content-type (:content-type file)}
+                   (s3/grant :all-users :read))
+    (get-file-url credentials file-key)))
