@@ -1,4 +1,4 @@
-(defproject clanhr/file-management "0.7.0"
+(defproject clanhr/file-management "0.7.1"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
