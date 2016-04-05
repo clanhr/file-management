@@ -1,7 +1,9 @@
 (ns file-management.core
   (use clojure.java.io)
   (:import (org.apache.commons.codec.binary Base64))
-  (:require [aws.sdk.s3 :as s3]))
+  (:require [result.core :as result]
+            [aws.sdk.s3 :as s3]
+            [clojure.core.async :refer [thread]]))
 
 (defn build-avatar-key
   [user-id]
@@ -74,10 +76,19 @@
                          :content-type }
    Returns: file url to s3"
   (let [file-key (gets-file-key file-key)]
-    (s3/put-object credentials
-                   (:bucket credentials)
-                   file-key
-                   (:value file)
-                   {:content-type (:content-type file)}
-                   (s3/grant :all-users :read))
-    (get-file-url credentials file-key))))
+    (try
+      (s3/put-object credentials
+                     (:bucket credentials)
+                     file-key
+                     (:value file)
+                     {:content-type (:content-type file)}
+                     (s3/grant :all-users :read))
+      (result/success (get-file-url credentials file-key))
+      (catch Exception e
+        (result/exception e))))))
+
+(defn async-put-file
+  ([credentials file]
+   (async-put-file credentials nil file))
+  ([credentials file-key file]
+    (thread (put-file credentials file-key file))))
