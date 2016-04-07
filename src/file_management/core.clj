@@ -34,11 +34,19 @@
     (catch Exception e
       (get-default-avatar-url credentials))))
 
-(defn get-img-stream
+(defn get-content-type
   [src]
-  (let [src-parsed (clojure.string/replace src #"^data:image/png;base64," "")
-        data (Base64/decodeBase64 src-parsed)]
-    (input-stream data)))
+  (last (re-find #"^data:(.*);" src)))
+
+(defn get-file-parsed
+  [src]
+  (clojure.string/replace src #"^data:(.*);base64," ""))
+
+(defn get-file-info
+  [src]
+  (let [data (Base64/decodeBase64 (get-file-parsed src))]
+    {:stream (input-stream data)
+     :content-type (get-content-type src)}))
 
 (defn delete-user-avatar
   [credentials user-id]
@@ -51,15 +59,16 @@
         (some? (:bucket credentials))
         (some? user-id)
         (some? avatar-value)}
-    (s3/put-object credentials
-                   (:bucket credentials)
-                   (build-avatar-key user-id)
-                   (get-img-stream avatar-value)
-                   {:content-type "image/png"}
-                   (s3/grant :all-users :read))
-    (get-avatar-url credentials user-id))
+    (let [file-info (get-file-info avatar-value)]
+      (s3/put-object credentials
+                     (:bucket credentials)
+                     (build-avatar-key user-id)
+                     (:stream file-info)
+                     {:content-type (:content-type file-info)}
+                     (s3/grant :all-users :read))
+      (get-avatar-url credentials user-id)))
 
-(defn gets-file-key
+(defn get-file-key
   [file-key]
   (str file-key "_" (java.util.UUID/randomUUID)))
 
@@ -72,20 +81,20 @@
                           :secret}
            - file-key We ensure an unique file key by concating an uuid,
            if nil we generate an unique file-key
-           - file-value {:value ;file content
-                         :content-type }
+           - file-value should be in base64
    Returns: file url to s3"
-  (let [file-key (gets-file-key file-key)]
-    (try
-      (s3/put-object credentials
-                     (:bucket credentials)
-                     file-key
-                     (:value file)
-                     {:content-type (:content-type file)}
-                     (s3/grant :all-users :read))
-      (result/success (get-file-url credentials file-key))
-      (catch Exception e
-        (result/exception e))))))
+    (let [file-key (get-file-key file-key)
+          file-info (get-file-info file)]
+      (try
+        (s3/put-object credentials
+                       (:bucket credentials)
+                       file-key
+                       (:stream file-info)
+                       {:content-type (:content-type file-info)}
+                       (s3/grant :all-users :read))
+        (result/success (get-file-url credentials file-key))
+        (catch Exception e
+          (result/exception e))))))
 
 (defn async-put-file
   ([credentials file]
